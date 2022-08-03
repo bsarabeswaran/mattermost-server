@@ -23,7 +23,6 @@ import (
 	"github.com/mattermost/mattermost-server/v6/shared/i18n"
 	"github.com/mattermost/mattermost-server/v6/shared/mlog"
 	"github.com/mattermost/mattermost-server/v6/store"
-	"github.com/mattermost/mattermost-server/v6/store/sqlstore"
 )
 
 const (
@@ -182,7 +181,7 @@ func (a *App) CreatePost(c request.CTX, post *model.Post, channel *model.Channel
 	if post.RootId != "" {
 		pchan = make(chan store.StoreResult, 1)
 		go func() {
-			r, pErr := a.Srv().Store.Post().Get(sqlstore.WithMaster(context.Background()), post.RootId, model.GetPostsOptions{}, "", a.Config().GetSanitizeOptions())
+			r, pErr := a.Srv().Store.Post().GetSingle(post.RootId, false)
 			pchan <- store.StoreResult{Data: r, NErr: pErr}
 			close(pchan)
 		}()
@@ -225,12 +224,11 @@ func (a *App) CreatePost(c request.CTX, post *model.Post, channel *model.Channel
 		if result.NErr != nil {
 			return nil, model.NewAppError("createPost", "api.post.create_post.root_id.app_error", nil, "", http.StatusBadRequest)
 		}
-		parentPostList = result.Data.(*model.PostList)
-		if len(parentPostList.Posts) == 0 || !parentPostList.IsChannelId(post.ChannelId) {
+		rootPost := result.Data.(*model.Post)
+		if rootPost == nil || rootPost.ChannelId != post.ChannelId {
 			return nil, model.NewAppError("createPost", "api.post.create_post.channel_root_id.app_error", nil, "", http.StatusInternalServerError)
 		}
 
-		rootPost := parentPostList.Posts[post.RootId]
 		if rootPost.RootId != "" {
 			return nil, model.NewAppError("createPost", "api.post.create_post.root_id.app_error", nil, "", http.StatusBadRequest)
 		}
