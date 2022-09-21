@@ -1687,6 +1687,10 @@ func TestInstallMarketplacePlugin(t *testing.T) {
 				Manifest: *manifest1,
 			}})
 
+			// Clean up
+			_, err = client.RemovePlugin(manifest1.Id)
+			require.NoError(t, err)
+
 			// Try to install remote marketplace plugin
 			pRequest = &model.InstallMarketplacePluginRequest{Id: "testplugin2"}
 			manifest, resp, err = client.InstallMarketplacePlugin(pRequest)
@@ -1701,6 +1705,14 @@ func TestInstallMarketplacePlugin(t *testing.T) {
 				*cfg.PluginSettings.MarketplaceURL = testServer.URL
 				*cfg.PluginSettings.AllowInsecureDownloadURL = true
 			})
+
+			// Confirm that testplugin can still be installed
+			pRequest = &model.InstallMarketplacePluginRequest{Id: "testplugin"}
+			manifest1, _, err = client.InstallMarketplacePlugin(pRequest)
+			require.NoError(t, err)
+			require.NotNil(t, manifest1)
+			require.Equal(t, "testplugin", manifest1.Id)
+			require.Equal(t, "0.0.1", manifest1.Version)
 
 			pRequest = &model.InstallMarketplacePluginRequest{Id: "testplugin2"}
 			manifest2, _, err := client.InstallMarketplacePlugin(pRequest)
