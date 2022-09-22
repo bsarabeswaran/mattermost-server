@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -1706,13 +1707,17 @@ func TestInstallMarketplacePlugin(t *testing.T) {
 				*cfg.PluginSettings.AllowInsecureDownloadURL = true
 			})
 
+			log.Printf("manifest1: %#+v\n", manifest1)
+			require.Equal(t, "testplugin", manifest1.Id)
+
 			// Confirm that testplugin can still be installed
 			pRequest = &model.InstallMarketplacePluginRequest{Id: "testplugin"}
 			manifest1, _, err = client.InstallMarketplacePlugin(pRequest)
+			log.Printf("manifest1: %#+v\n", manifest1)
 			require.NoError(t, err)
 			require.NotNil(t, manifest1)
-			require.Equal(t, "testplugin", manifest1.Id)
-			require.Equal(t, "0.0.1", manifest1.Version)
+			assert.Equal(t, "testplugin", manifest1.Id)
+			assert.Equal(t, "0.0.1", manifest1.Version)
 
 			pRequest = &model.InstallMarketplacePluginRequest{Id: "testplugin2"}
 			manifest2, _, err := client.InstallMarketplacePlugin(pRequest)
