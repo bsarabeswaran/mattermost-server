@@ -1168,7 +1168,7 @@ func (a *App) importReplies(c request.CTX, data []imports.ReplyImportData, post 
 	}
 
 	if len(postsForCreateList) > 0 {
-		if _, _, err := a.Srv().Store().Post().SaveMultiple(postsForCreateList); err != nil {
+		if _, _, err := a.Srv().Store().Post().SaveMultiple(teamID, postsForCreateList); err != nil {
 			var appErr *model.AppError
 			var invErr *store.ErrInvalidInput
 			switch {
@@ -1387,7 +1387,7 @@ func (a *App) importMultiplePostLines(c request.CTX, lines []imports.LineImportW
 		return 0, err
 	}
 	postsWithData := []postAndData{}
-	postsForCreateList := []*model.Post{}
+	postsForCreateByTeam := map[string][]*model.Post{}
 	postsForCreateMap := map[string]int{}
 	postsForOverwriteList := []*model.Post{}
 	postsForOverwriteMap := map[string]int{}
@@ -1446,7 +1446,7 @@ func (a *App) importMultiplePostLines(c request.CTX, lines []imports.LineImportW
 		}
 
 		if post.Id == "" {
-			postsForCreateList = append(postsForCreateList, post)
+			postsForCreateByTeam[team.Id] = append(postsForCreateByTeam[team.Id], post)
 			postsForCreateMap[getPostStrID(post)] = line.LineNumber
 		} else {
 			postsForOverwriteList = append(postsForOverwriteList, post)
@@ -1455,8 +1455,8 @@ func (a *App) importMultiplePostLines(c request.CTX, lines []imports.LineImportW
 		postsWithData = append(postsWithData, postAndData{post: post, postData: line.Post, team: team, lineNumber: line.LineNumber})
 	}
 
-	if len(postsForCreateList) > 0 {
-		if _, idx, nErr := a.Srv().Store().Post().SaveMultiple(postsForCreateList); nErr != nil {
+	for teamID, postsForCreateList := range postsForCreateByTeam {
+		if _, idx, nErr := a.Srv().Store().Post().SaveMultiple(teamID, postsForCreateList); nErr != nil {
 			var appErr *model.AppError
 			var invErr *store.ErrInvalidInput
 			var retErr *model.AppError
@@ -1767,7 +1767,7 @@ func (a *App) importMultipleDirectPostLines(c request.CTX, lines []imports.LineI
 	}
 
 	if len(postsForCreateList) > 0 {
-		if _, idx, err := a.Srv().Store().Post().SaveMultiple(postsForCreateList); err != nil {
+		if _, idx, err := a.Srv().Store().Post().SaveMultiple("", postsForCreateList); err != nil {
 			var appErr *model.AppError
 			var invErr *store.ErrInvalidInput
 			var retErr *model.AppError
