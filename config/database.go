@@ -117,11 +117,6 @@ func (ds *DatabaseStore) initializeConfigurationsTable() error {
 		return err
 	}
 
-	cfg := drivers.Config{
-		MigrationsTable:        migrationsTableName,
-		StatementTimeoutInSecs: migrationsTimeoutInSeconds,
-	}
-
 	var driver drivers.Driver
 	switch ds.driverName {
 	case model.DatabaseDriverMysql:
@@ -141,15 +136,11 @@ func (ds *DatabaseStore) initializeConfigurationsTable() error {
 			return errors.Wrapf(err, "failed to connect to %s database", ds.driverName)
 		}
 
-		driver, err = ms.WithInstance(db.DB, &ms.Config{
-			Config: cfg,
-		})
+		driver, err = ms.WithInstance(db.DB)
 
 		defer db.Close()
 	case model.DatabaseDriverPostgres:
-		driver, err = ps.WithInstance(ds.db.DB, &ps.Config{
-			Config: cfg,
-		})
+		driver, err = ps.WithInstance(ds.db.DB)
 	default:
 		err = fmt.Errorf("unsupported database type %s for migration", ds.driverName)
 	}
@@ -159,6 +150,8 @@ func (ds *DatabaseStore) initializeConfigurationsTable() error {
 
 	opts := []morph.EngineOption{
 		morph.WithLock("mm-config-lock-key"),
+		morph.SetMigrationTableName(migrationsTableName),
+		morph.SetStatementTimeoutInSeconds(migrationsTimeoutInSeconds),
 	}
 	engine, err := morph.New(context.Background(), driver, src, opts...)
 	if err != nil {
